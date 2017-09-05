@@ -1,0 +1,22 @@
+!
+!   Ultimaker Cura Ribbon Group
+!
+!   This file will create a new ribbon group containing the Cura interface
+!   
+!
+! 
+!
+
+TITLE Ultimaker
+VERSION 170
+
+!
+! Group Buttons
+!
+
+  BUTTON NX_CURA
+    LABEL Cura interface
+    BITMAP ${UGII_USER_DIR}\bitmaps\Cura.bmp
+    ACTION ${UGII_USER_DIR}\application\NXCuraIntegrationCleanUI.vb
+
+

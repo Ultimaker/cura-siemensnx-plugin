@@ -1,0 +1,16 @@
+!  NX Cura menu file
+! 
+!  Contains button definitions to be used in 
+!  toolbars and Ribbon files
+!
+
+VERSION 120
+EDIT UG_GATEWAY_MAIN_MENUBAR
+
+BEFORE UG_FILE_QUIT
+
+    BUTTON NX_CURA
+    LABEL Cura interface
+    ACTIONS NXCuraIntegrationCleanUI.vb
+SEPARATOR
+END_OF_BEFORE

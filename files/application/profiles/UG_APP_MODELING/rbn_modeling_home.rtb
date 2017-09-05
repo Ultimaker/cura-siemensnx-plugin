@@ -1,0 +1,35 @@
+!
+!  NX Modeling ribbon Home tab file
+!
+! 
+
+TITLE  Home
+VERSION 170
+
+GROUP  rbn_direct_sketch_inactive.grb
+
+GROUP  rbn_direct_sketch.grb
+
+GROUP  rbn_feature.grb
+
+GROUP  rbn_synchronous_modeling.grb
+
+GROUP  rbn_modeling_home_surface.grb
+
+GROUP  rbn_edit_feature.grb
+HIDE
+
+GROUP  rbn_feature_replay.grb
+HIDE
+
+GROUP  rbn_organize_feature.grb
+HIDE
+
+GROUP  rbn_modeling_aero_design.grb
+HIDE
+
+GROUP  rbn_assemblies_modeling_home.grb
+
+GROUP  Ultimaker_Ribbon_Group.grb
+
+
