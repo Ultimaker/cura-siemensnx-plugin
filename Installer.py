@@ -1,5 +1,7 @@
 import os
 import subprocess
+import shutil
+import winreg
 
 from UM.Extension import Extension
 from UM.Logger import Logger
@@ -22,32 +24,95 @@ class Installer(QObject, Extension):
 
     def _install(self):
         files_path = os.path.abspath(os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), "files"))
-        #self._set_key("UGII_USER_DIR", files_path)
-        self._set_key_cmd("UGII_USER_DIR", files_path)
 
-    def _set_key(self, name, value):
-        from winreg import ConnectRegistry, OpenKey, SetValueEx, CloseKey, HKEY_CURRENT_USER, KEY_ALL_ACCESS, REG_EXPAND_SZ
+        existing_env_value = os.environ.get("UGII_USER_DIR")
+        if existing_env_value:
+            existing_env_value = os.path.abspath(existing_env_value)
+
+        if existing_env_value and os.path.isdir(existing_env_value):
+            # if it's the same directory, do nothing
+            if existing_env_value == files_path:
+                message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
+                self._application.showMessage(message)
+                return
+
+            # If UGII_USER_DIR is already defined, try to copy the plugins file there.
+            # The copying can fail because of permission or other reasons
+            try:
+                self._copyAllFiles(files_path, existing_env_value)
+                message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
+                self._application.showMessage(message)
+            except Exception:
+                Logger.logException("e", "Failed to copy files from [%s] to [%s]", files_path, existing_env_value)
+
+                # show error message
+                message = Message(i18n_catalog.i18n("Failed to copy Siemens NX plugins files. Please check your UGII_USER_DIR."))
+                self._application.showMessage(message)
+        else:
+            # If the environment variable is not defined, set it as a user environment variable
+            self._setUserEnvironmentVariable("UGII_USER_DIR", files_path)
+
+    def _setUserEnvironmentVariable(self, name, value):
+        """
+        Sets the user environment variable for the Siemens NX plugins.
+        :param name: Name of the environment variable.
+        :param value: Value of the environment variable.
+        """
+        args = ["setx", name, value]
+        try:
+            os.environ[name] = value
+            subprocess.run(args, check = True)
+            message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
+            self._application.showMessage(message)
+        except Exception:
+            Logger.logException("e", "failed to set environment variable for Siemens NX")
+            message = Message(i18n_catalog.i18n("Failed to install Siemens NX plugin. Could not set environment variable UGII_USER_DIR for Siemens NX."))
+            self._application.showMessage(message)
+
+    def _queryRegistryValue(self, main_key, path, name):
         reg = None
         key = None
         try:
-            path = r'Environment'
-            reg = ConnectRegistry(None, HKEY_CURRENT_USER)
-            key = OpenKey(reg, path, 0, KEY_ALL_ACCESS)
-            SetValueEx(key, name, 0, REG_EXPAND_SZ, value)
-
+            reg = winreg.ConnectRegistry(None, main_key)
+            key = winreg.OpenKey(reg, path, 0, winreg.KEY_ALL_ACCESS)
+            value, value_type = winreg.QueryValueEx(key, name)
+            return value
         except Exception as e:
-            print(e)
+            Logger.log("i", "Could not find [%s] in the user environment variables: %s", name, e)
+        finally:
+            # close everything
+            if key:
+                try:
+                    winreg.CloseKey(key)
+                except:
+                    pass
+            if reg:
+                try:
+                    winreg.CloseKey(reg)
+                except:
+                    pass
 
-        if key:
-            CloseKey(key)
-        if reg:
-            CloseKey(reg)
+    def _copyAllFiles(self, from_dir, to_dir):
+        for name in os.listdir(from_dir):
+            abs_from_path = os.path.join(from_dir, name)
+            abs_to_path = os.path.join(to_dir, name)
+            if os.path.isdir(abs_from_path):
+                # make sure this directory is also in the target directory
+                if not os.path.exists(abs_to_path):
+                    # try to create the directory in the destination directory
+                    try:
+                        os.makedirs(abs_to_path)
+                    except Exception as e:
+                        raise RuntimeError("Could not create directory [%s]: %s", abs_to_path, e)
+                elif os.path.exists(abs_to_path) and not os.path.isdir(abs_to_path):
+                    raise RuntimeError("Could not copy files because the destination path [%s] is not a directory" % abs_to_path)
 
-    def _set_key_cmd(self, name, value):
-        args = ["setx", name, value]
-        try:
-            subprocess.run(args, check = True)
-            message = Message("Successfully installed Siemens NX Cura plugin.")
-            self._application.showMessage(message)
-        except Exception as e:
-            Logger.logException("e", "failed to set environment variable for Siemens NX")
+                # iterate into the directory
+                self._copyAllFiles(abs_from_path, abs_to_path)
+
+            elif os.path.isfile(abs_from_path):
+                # copy the file there
+                try:
+                    shutil.copy2(abs_from_path, abs_to_path)
+                except Exception as e:
+                    raise RuntimeError("Could not copy file [%s] to [%s]: %s", abs_from_path, abs_to_path, e)
