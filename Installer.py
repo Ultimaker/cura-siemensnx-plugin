@@ -22,7 +22,12 @@ class Installer(QObject, Extension):
         self._application = CuraApplication.getInstance()
         self.addMenuItem(i18n_catalog.i18n("Install"), self._install)
 
-    def _install(self):
+        # Automatically install the plugin
+        CuraApplication.getInstance().callLater(self._install, True)
+
+    ##  Installs the plugin. If this is called via auto-install, it won't show any message if everything goes fine.
+    #   \param is_auto_install \type{bool} Whether this function is called via auto-install or not.
+    def _install(self, is_auto_install = False):
         files_path = os.path.abspath(os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), "files"))
 
         existing_env_value = self._queryRegistryValue(winreg.HKEY_CURRENT_USER, "Environment", "UGII_USER_DIR")
@@ -41,16 +46,18 @@ class Installer(QObject, Extension):
 
             # if it's the same directory, do nothing
             if existing_env_value == files_path:
-                message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
-                self._application.showMessage(message)
+                if not is_auto_install:
+                    message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
+                    self._application.showMessage(message)
                 return
 
             # If UGII_USER_DIR is already defined, try to copy the plugins file there.
             # The copying can fail because of permission or other reasons
             try:
                 self._copyAllFiles(files_path, existing_env_value)
-                message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
-                self._application.showMessage(message)
+                if not is_auto_install:
+                    message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
+                    self._application.showMessage(message)
             except Exception:
                 Logger.logException("e", "Failed to copy files from [%s] to [%s]", files_path, existing_env_value)
 
