@@ -25,11 +25,20 @@ class Installer(QObject, Extension):
     def _install(self):
         files_path = os.path.abspath(os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), "files"))
 
-        existing_env_value = os.environ.get("UGII_USER_DIR")
-        if existing_env_value:
+        existing_env_value = self._queryRegistryValue(winreg.HKEY_CURRENT_USER, "Environment", "UGII_USER_DIR")
+        if existing_env_value is None:
+            existing_env_value = os.environ.get("UGII_USER_DIR")
+        if existing_env_value is not None:
             existing_env_value = os.path.abspath(existing_env_value)
 
-        if existing_env_value and os.path.isdir(existing_env_value):
+        if existing_env_value is not None:
+            if os.path.exists(existing_env_value):
+                # if the path exists, check if it is a directory
+                if not os.path.isdir(existing_env_value):
+                    message = Message(i18n_catalog.i18n("Failed to copy Siemens NX plugins files. Please check your UGII_USER_DIR. It is not set to a directory."))
+                    self._application.showMessage(message)
+                    return
+
             # if it's the same directory, do nothing
             if existing_env_value == files_path:
                 message = Message(i18n_catalog.i18n("Successfully installed Siemens NX Cura plugin."))
