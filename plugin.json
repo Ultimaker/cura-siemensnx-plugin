@@ -1,6 +1,6 @@
 {
     "name": "Siemens NX Integration",
-    "author": "Cards PLM Solutions",
+    "author": "cards PLM Solutions",
     "version": "0.1.5",
     "description": "Helps you to install an 'export to Cura' button in Siemens NX.",
     "api": 4,
