@@ -393,7 +393,7 @@ Public Class NXCuraIntegrationCleanUI
             'Get all Cura key names
             Dim curaKeyNameList As New ArrayList
             For Each regKeyName As String In regKey.GetSubKeyNames()
-                If regKeyName.StartsWith("Cura ") Then
+                If regKeyName.StartsWith("Ultimaker Cura ") Or regKeyName.StartsWith("Cura ") Then
                     curaKeyNameList.Add(regKeyName)
                 End If
             Next
